@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Manga Rankings</title>
+
+</head>
+
+<body>
+    <section id="container" class="">
+        {% block mainbody %}
+        <header class="header dark-bg">
+            <nav class="navbar navbar-inverse" role="navigation">
+                <div class="container-fluid">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">Dashboard</a>
+                </div>
+                <div>
+                    <ul class="nav navbar-nav">
+                        <!-- <li class="active"><a href="/manufacturer-report">Manufacturer Report</a></li>-->
+                        <li class="active"><a href="/get-manga-ranking">Manga Rankings</a></li>
+                    </ul>
+                </div>
+                </div>
+            </nav>
+        </header>
+        <section id="main-content">
+            <br>
+            <br>
+            <br>
+
+            <h1>Manga Rankings</h1>
+            <form action="/get-manga-ranking" method="GET">
+                Ranking Type
+                <select name="ranking_type">
+                  
+                  {% for ranking_type in ranking_types%}
+            
+                    <option value={{ranking_type}}>{{ranking_type}}
+                    </option>
+            
+                  {%endfor%}
+            
+                </select>
+                Amount
+                <input type="text" id="limit" name = "limit" value = "500">
+                <button type="submit"> Submit</button>
+            </form>
+            <p>{{rankingtype}}</p>
+            {% if data[0][0] != None %}
+            <table>
+              <tr>
+                <th>Rank</th>
+                <th>Title</th>
+                <th>Picture</th>
+                
+              </tr>
+              {% for item in data %}
+              <tr>
+                <td>{{item["ranking"]['rank']}}</td>
+                <td>{{item['node']['title']}}</td>
+                <td><img src={{item['node']['main_picture']['medium']}} alt = {{item['node']['main_picture']['medium']}}></td>
+              </tr>
+              {% endfor %}
+            </table>
+            {% else %}
+            <p>Error: Call failed, make sure you're connected to the internet</p>
+            {% endif %}
+        </section>
+       {% endblock %}
+    </section>
+
+
+
+</body>
+
+</html>
