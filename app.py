@@ -68,6 +68,11 @@ def mangaRanking():
         })
 
         response.raise_for_status()
+        if response.status_code == 401:
+            if os.path.exists("token.json"):
+                os.remove("token.json")
+            url = Oauth2.print_new_authorisation_url(code_challenge)
+            return render_template("login.html", url = url)
         data = response.json()["data"]
         response.close()
         return render_template("mangarankings.html",data = data, ranking_types = rankingtypes)
@@ -79,9 +84,13 @@ def mangaRanking():
         })
 
         response.raise_for_status()
+        if response.status_code == 401:
+            if os.path.exists("token.json"):
+                os.remove("token.json")
+            url = Oauth2.print_new_authorisation_url(code_challenge)
+            return render_template("login.html", url = url)
         data = response.json()["data"]
         url = response.json()["paging"]["next"]
-        print(url)
         response.close()
         originalLimit = limitTypeInt
         limitTypeInt-=500
@@ -90,15 +99,20 @@ def mangaRanking():
                 'Authorization': f'Bearer {access_token}'
             })
             response.raise_for_status()
-            if response.status_code != 200:
+            if response.status_code == 401:
+                if os.path.exists("token.json"):
+                    os.remove("token.json")
+                url = Oauth2.print_new_authorisation_url(code_challenge)
+                return render_template("login.html", url = url)
+            elif response.status_code != 200:
                 break
+
             data += response.json()["data"]
             url = response.json()["paging"]
             response.close()
             limitTypeInt-=500
         data = data[:originalLimit]
         return render_template("mangarankings.html",data = data, ranking_types = rankingtypes)
-
 
 if __name__ == "__main__":
     app.run()
