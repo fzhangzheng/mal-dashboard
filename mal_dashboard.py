@@ -12,6 +12,7 @@ client_secret = os.getenv('client_secret')
 authorization_base_url = 'https://myanimelist.net/v1/oauth2/authorize'
 token_url = 'https://myanimelist.net/v1/oauth2/token'
 
+# Initial OAuth connection
 @app.route('/')
 def login():
     token = secrets.token_urlsafe(100)
@@ -25,7 +26,7 @@ def login():
     session['code_challenge'] = code_challenge
     return redirect(authorization_url)
 
-
+# Getting redirect and then getting token
 @app.route('/callback', methods=['GET'])
 def callback():
     myanimelist = OAuth2Session(client_id, state=session['oauth_state'])
