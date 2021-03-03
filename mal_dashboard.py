@@ -1,65 +1,52 @@
+from requests_oauthlib import OAuth2Session
 from flask import Flask, request, redirect, session, url_for
+from flask.json import jsonify
 from dotenv import load_dotenv
-import json
-import requests
 import secrets
 import os
 
-load_dotenv()
+app = Flask(__name__)
 
-class oauth2 ():
+client_id = os.getenv('client_id')
+client_secret = os.getenv('client_secret')
+authorization_base_url = 'https://myanimelist.net/v1/oauth2/authorize'
+token_url = 'https://myanimelist.net/v1/oauth2/token'
 
-    def get_new_code_verifier(self) -> str:
-        token = secrets.token_urlsafe(100)
-        return token[:128]
+@app.route('/')
+def login():
+    token = secrets.token_urlsafe(100)
+    code_challenge = token[:128]
 
-    def print_new_authorisation_url(self, code_challenge: str):
-        url = f"https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id={os.getenv('client_id')}&code_challenge={code_challenge}"
-        print(f'Authorize by clicking here: {url}\n')
-        return url
+    myanimelist = OAuth2Session(os.getenv('client_id'))
+    authorization_url, state = myanimelist.authorization_url(authorization_base_url,
+                                                             code_challenge=code_challenge)
 
-    def generate_new_token(self, authorization_code: str, code_verifier: str) -> dict:
-        url = 'https://myanimelist.net/v1/oauth2/token'
-        data = {
-            'client_id': os.getenv('client_id'),
-            'client_secret': os.getenv('client_secret'),
-            'code': authorization_code,
-            'code_verifier': code_verifier,
-            'grant_type': 'authorization_code'
-        }
+    session['oauth_state'] = state
+    session['code_challenge'] = code_challenge
+    return redirect(authorization_url)
 
-        response = requests.post(url, data)
-        response.raise_for_status()
 
-        token = response.json()
-        response.close()
-        print('Token generated')
+@app.route('/callback', methods=['GET'])
+def callback():
+    myanimelist = OAuth2Session(client_id, state=session['oauth_state'])
+    token = myanimelist.fetch_token(token_url,
+                                    client_secret=client_secret,
+                                    authorization_response=request.url,
+                                    code_verifier=session['code_challenge'])
+    session['oauth_token'] = token
 
-        with open('token.json', 'w') as file:
-            json.dump(token, file, indent = 4)
-            print('Token saved in token.json')
+    return redirect(url_for('.profile'))
 
-        return token
+@app.route('/profile', methods=['GET'])
+def profile():
+    myanimelist = OAuth2Session(client_id, token=session['oauth_token'])
+    return jsonify(myanimelist.get('https://api.myanimelist.net/v2/users/@me').json())
 
-    def print_user_info(self, access_token: str):
-        url = 'https://api.myanimelist.net/v2/users/@me'
-        response = requests.get(url, headers={
-            'Authorization': f'Bearer {access_token}'
-        })
-
-        response.raise_for_status()
-        user = response.json()
-        response.close()
-
-        print(f"Your username {user['name']}")
-        return user
 
 if __name__ == '__main__':
-    Oauth2 = oauth2()
-    code_verifier = code_challenge = Oauth2.get_new_code_verifier()
-    Oauth2.print_new_authorisation_url(code_challenge)
+    load_dotenv()
 
-    authorization_code = input('Copy-paste the Authorisation Code: ').strip()
-    token = Oauth2.generate_new_token(authorization_code, code_verifier)
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
 
-    Oauth2.print_user_info(token['access_token'])
+    app.secret_key = os.urandom(24)
+    app.run(debug=True)
