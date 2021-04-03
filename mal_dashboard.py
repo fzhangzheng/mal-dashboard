@@ -1,5 +1,6 @@
+import requests
 from requests_oauthlib import OAuth2Session
-from flask import Flask, request, redirect, session, url_for
+from flask import Flask, request, redirect, session, url_for, render_template
 from flask.json import jsonify
 from dotenv import load_dotenv
 import secrets
@@ -41,8 +42,56 @@ def callback():
 @app.route('/profile', methods=['GET'])
 def profile():
     myanimelist = OAuth2Session(client_id, token=session['oauth_token'])
-    return jsonify(myanimelist.get('https://api.myanimelist.net/v2/users/@me').json())
+    data = myanimelist.get('https://api.myanimelist.net/v2/users/@me').json()
+    print(data)
+    return render_template("dashboard.html",user=data)
 
+@app.route('/manga-ranking', methods= ["GET"])
+def mangaRanking():
+    valuestring = "all,manga,oneshots,doujin,lightnovels,novels,manhwa,manhua,bypopularity,favorite"
+    rankingtypes = valuestring.split(',')
+    limitvalues = [i for i in range(1, 501)]\
+
+    rankingType = request.args.get('ranking_type')
+    limitType = request.args.get('limit')
+    if rankingType == None:
+        rankingType = rankingtypes[0]
+    if limitType == None or limitType.isdigit() == False:
+        limitTypeInt = limitvalues[-1]
+    else:
+        limitTypeInt = int(limitType)
+    access_token = session['oauth_token']['access_token']
+
+    if limitTypeInt <= 500:
+        url = 'https://api.myanimelist.net/v2/manga/ranking?ranking_type={!s}&limit={!s}'.format(rankingType,
+                                                                                                 str(limitTypeInt))
+        response = requests.get(url, headers={
+            'Authorization': f'Bearer {access_token}'
+        })
+        data = response.json()["data"]
+        response.close()
+        return render_template("mangarankings.html", data=data, ranking_types=rankingtypes)
+    else:
+        url = 'https://api.myanimelist.net/v2/manga/ranking?ranking_type={!s}&limit={!s}'.format(rankingType, "500")
+
+        response = requests.get(url, headers={
+            'Authorization': f'Bearer {access_token}'
+        })
+        data = response.json()["data"]
+        url = response.json()["paging"]["next"]
+        response.close()
+        originalLimit = limitTypeInt
+        limitTypeInt -= 500
+        while limitTypeInt > 0:
+            response = requests.get(url, headers={
+                'Authorization': f'Bearer {access_token}'
+            })
+            data += response.json()["data"]
+            url = response.json()["paging"]
+            response.close()
+            limitTypeInt -= 500
+        data = data[:originalLimit]
+        return render_template("mangarankings.html", data=data, ranking_types=rankingtypes)
 
 if __name__ == '__main__':
     load_dotenv()
