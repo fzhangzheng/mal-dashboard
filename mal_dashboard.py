@@ -46,7 +46,7 @@ def profile():
     myanimelist = OAuth2Session(client_id, token=session['oauth_token'])
     data = myanimelist.get('https://api.myanimelist.net/v2/users/@me').json()
     print(data)
-    return render_template("dashboard.html", user=data)
+    return render_template('dashboard.html', user=data)
 
 
 @app.route('/anime-list', methods=['GET'])
@@ -62,9 +62,9 @@ def animeList():
     return render_template('animelist.html', data=data)
 
 
-@app.route('/manga-ranking', methods=["GET"])
+@app.route('/manga-ranking', methods=['GET'])
 def mangaRanking():
-    valuestring = "all,manga,oneshots,doujin,lightnovels,novels,manhwa,manhua,bypopularity,favorite"
+    valuestring = 'all,manga,oneshots,doujin,lightnovels,novels,manhwa,manhua,bypopularity,favorite'
     rankingtypes = valuestring.split(',')
     limitvalues = [i for i in range(1, 501)]\
 
@@ -84,17 +84,17 @@ def mangaRanking():
         response = requests.get(url, headers={
             'Authorization': f'Bearer {access_token}'
         })
-        data = response.json()["data"]
+        data = response.json()['data']
         response.close()
-        return render_template("mangarankings.html", data=data, ranking_types=rankingtypes)
+        return render_template('mangarankings.html', data=data, ranking_types=rankingtypes)
     else:
-        url = 'https://api.myanimelist.net/v2/manga/ranking?ranking_type={!s}&limit={!s}'.format(rankingType, "500")
+        url = 'https://api.myanimelist.net/v2/manga/ranking?ranking_type={!s}&limit={!s}'.format(rankingType, '500')
 
         response = requests.get(url, headers={
             'Authorization': f'Bearer {access_token}'
         })
-        data = response.json()["data"]
-        url = response.json()["paging"]["next"]
+        data = response.json()['data']
+        url = response.json()['paging']['next']
         response.close()
         originalLimit = limitTypeInt
         limitTypeInt -= 500
@@ -102,17 +102,17 @@ def mangaRanking():
             response = requests.get(url, headers={
                 'Authorization': f'Bearer {access_token}'
             })
-            data += response.json()["data"]
-            url = response.json()["paging"]
+            data += response.json()['data']
+            url = response.json()['paging']
             response.close()
             limitTypeInt -= 500
         data = data[:originalLimit]
-        return render_template("mangarankings.html", data=data, ranking_types=rankingtypes)
+        return render_template('mangarankings.html', data=data, ranking_types=rankingtypes)
 
 if __name__ == '__main__':
     load_dotenv()
 
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
     app.secret_key = os.urandom(24)
     app.run(debug=True)
