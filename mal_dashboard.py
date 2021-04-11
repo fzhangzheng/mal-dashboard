@@ -27,6 +27,7 @@ def login():
     session['code_challenge'] = code_challenge
     return redirect(authorization_url)
 
+
 # Getting redirect and then getting token
 @app.route('/callback', methods=['GET'])
 def callback():
@@ -39,14 +40,29 @@ def callback():
 
     return redirect(url_for('.profile'))
 
+
 @app.route('/profile', methods=['GET'])
 def profile():
     myanimelist = OAuth2Session(client_id, token=session['oauth_token'])
     data = myanimelist.get('https://api.myanimelist.net/v2/users/@me').json()
     print(data)
-    return render_template("dashboard.html",user=data)
+    return render_template("dashboard.html", user=data)
 
-@app.route('/manga-ranking', methods= ["GET"])
+
+@app.route('/anime-list', methods=['GET'])
+def animeList():
+    access_token = session['oauth_token']['access_token']
+    url = 'https://api.myanimelist.net/v2/users/@me/animelist?fields=list_status&limit=4'
+    response = requests.get(url,
+                            headers={
+                                'Authorization', f'Bearer {access_token}'
+                            })
+    data = response.json()['data']
+    response.close()
+    return render_template('animelist.html', data=data)
+
+
+@app.route('/manga-ranking', methods=["GET"])
 def mangaRanking():
     valuestring = "all,manga,oneshots,doujin,lightnovels,novels,manhwa,manhua,bypopularity,favorite"
     rankingtypes = valuestring.split(',')
